@@ -1,7 +1,1 @@
-{
-    "firstName": "Parvez",
-    "lastName": "xyz",
-    "phone": "01745800727",
-    "password": "c28a8b2c670b4cded1b5e54826f70b92adacc195ccaeaeb98b0c16cbbdca24da",
-    "tosAgreement": true
-}
+{"firstName":"Parvez","lastName":"xyz","phone":"01745800727","password":"c28a8b2c670b4cded1b5e54826f70b92adacc195ccaeaeb98b0c16cbbdca24da","tosAgreement":true,"checks":["txrlewym10z0lxari0d3","pg9e6n8mo8odzy55eqan"]}
