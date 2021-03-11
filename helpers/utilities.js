@@ -15,7 +15,6 @@ utilities.parseJSON = (jsonString) => {
     return output;
 }
 // hasing the string
-
 utilities.hash = (str) => {
     if (typeof (str) === 'string' && str.length > 0) {
         const hash = crypto
@@ -25,6 +24,27 @@ utilities.hash = (str) => {
             .digest('hex');
         return hash;
     }
+};
+
+// Create random string
+
+utilities.createRandomString = (strlength) => {
+    let len = strlength;
+    len = typeof (strlength) === 'number' && strlength > 0 ? strlength : false;
+
+    if (len) {
+        let possibleCharacters = 'abcdefghijklmnopqrstwxyz1234567890';
+        let output = '';
+
+        for (let index = 0; index < len; index++) {
+            const randomCharacter = possibleCharacters.charAt(Math.floor(Math.random() * possibleCharacters.length));
+            output += randomCharacter;
+        }
+        return output;
+    } else {
+        return false;
+    }
+
 }
 
 module.exports = utilities;

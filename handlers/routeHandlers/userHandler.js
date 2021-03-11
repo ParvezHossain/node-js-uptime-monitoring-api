@@ -2,6 +2,7 @@
 const data = require('../../lib/data');
 const { hash } = require('../../helpers/utilities');
 const { parseJSON } = require('../../helpers/utilities');
+const tokenHandler = require('../routeHandlers/tokenHandler');
 
 // module scaffolding
 const handler = {};
@@ -15,7 +16,7 @@ handler.userHandler = (requestProperties, callback) => {
     } else {
         callback(405);
     }
-}; 
+};
 
 handler._users = {};
 
@@ -67,6 +68,8 @@ handler._users.post = (requestProperties, callback) => {
     }
 
 }
+
+// User authentication
 handler._users.get = (requestProperties, callback) => {
 
     const phone = typeof
@@ -76,28 +79,39 @@ handler._users.get = (requestProperties, callback) => {
         : false;
 
     if (phone) {
-        // look up for the user
-        data.read('users', phone, (err, usr) => {
 
-            const user = { ...parseJSON(usr) };
+        // verify token
+        let token = typeof requestProperties.headersObject.token === 'string' ? requestProperties.headersObject.token : false;
 
-
-
-            if (!err && user) {
-                delete user.password;
-                callback(200, user)
+        tokenHandler._token.verify(token, phone, (tokenId) => {
+            if (tokenId) {
+                // look up for the user
+                data.read('users', phone, (err, usr) => {
+                    const user = { ...parseJSON(usr) };
+                    if (!err && user) {
+                        delete user.password;
+                        callback(200, user)
+                    } else {
+                        callback(404, {
+                            "error": "user not found",
+                        })
+                    }
+                })
             } else {
-                callback(404, {
-                    "error": "user not found",
+                callback(403, {
+                    error: "Authentication fail",
                 })
             }
         })
+
+
     } else {
         callback(404, {
             "error": "user not found",
         })
     }
 }
+// User authentication
 handler._users.put = (requestProperties, callback) => {
     const firstName = typeof (requestProperties.body.firstName) === 'string' && requestProperties.body.firstName.trim().length > 0 ? requestProperties.body.firstName : false;
 
@@ -107,41 +121,56 @@ handler._users.put = (requestProperties, callback) => {
 
     const password = typeof (requestProperties.body.password) === 'string' && requestProperties.body.password.trim().length > 0 ? requestProperties.body.password : false;
 
+    // verify token
+    let token = typeof requestProperties.headersObject.token === 'string' ? requestProperties.headersObject.token : false;
+
     if (phone) {
         if (firstName || lastName || password) {
-            // look up user
-            data.read('users', phone, (err, uData) => {
 
-                userData = { ...parseJSON(uData) };
+            // AUthentication
+            tokenHandler._token.verify(token, phone, (tokenId) => {
+                if (tokenId) {
+                    // look up user data
+                    data.read('users', phone, (err, uData) => {
 
-                if (!err && userData) {
-                    if (firstName) {
-                        userData.firstName = firstName;
-                    }
-                    if (lastName) {
-                        userData.lastName = lastName;
-                    }
-                    if (password) {
-                        userData.password = hash(password);
-                    }
-                    // update to database
-                    data.update('users', phone, userData, (err) => {
-                        if (!err) {
-                            callback(200, {
-                                message: "userdata updated."
+                        userData = { ...parseJSON(uData) };
+
+                        if (!err && userData) {
+                            if (firstName) {
+                                userData.firstName = firstName;
+                            }
+                            if (lastName) {
+                                userData.lastName = lastName;
+                            }
+                            if (password) {
+                                userData.password = hash(password);
+                            }
+                            // update to database
+                            data.update('users', phone, userData, (err) => {
+                                if (!err) {
+                                    callback(200, {
+                                        message: "userdata updated."
+                                    })
+                                } else {
+                                    callback(500, {
+                                        err: "Server error",
+                                    })
+                                }
                             })
                         } else {
-                            callback(500, {
-                                err: "Server error",
+                            callback(400, {
+                                error: "erro",
                             })
                         }
                     })
                 } else {
-                    callback(400, {
-                        error: "erro",
+                    callback(403, {
+                        error: "Authentication fail",
                     })
                 }
             })
+
+
         } else {
             callback(400, {
                 error: "erro",
@@ -153,30 +182,44 @@ handler._users.put = (requestProperties, callback) => {
         })
     }
 }
+// User authentication
 handler._users.delete = (requestProperties, callback) => {
 
-    const phone = typeof (requestProperties.body.phone) === 'string' && requestProperties.body.phone.trim().length === 11 ? requestProperties.body.phone : false;
+    const phone = typeof (requestProperties.queryStringObject.phone) === 'string' && requestProperties.queryStringObject.phone.trim().length === 11 ? requestProperties.queryStringObject.phone : false;
+
+    // verify token
+    let token = typeof requestProperties.headersObject.token === 'string' ? requestProperties.headersObject.token : false;
 
     if (phone) {
-        data.read('users', phone, (err, uData) => {
-            if (!err && uData) {
-                data.delete('users', phone, (err) => {
-                    if (!err) {
-                        callback(200, {
-                            "message": "user deleted",
+        tokenHandler._token.verify(token, phone, (tokenId) => {
+            if (tokenId) {
+                // look up for the user
+                data.read('users', phone, (err, uData) => {
+                    if (!err && uData) {
+                        data.delete('users', phone, (err) => {
+                            if (!err) {
+                                callback(200, {
+                                    "message": "user deleted",
+                                })
+                            } else {
+                                callback(500, {
+                                    error: "Error 500",
+                                })
+                            }
                         })
                     } else {
                         callback(500, {
-                            error: "Error 500",
+                            error: "Error while deleting"
                         })
                     }
                 })
             } else {
-                callback(500, {
-                    error: "Error while deleting"
+                callback(403, {
+                    error: "Authentication fail",
                 })
             }
         })
+
     } else {
         callback(400, {
             error: "Error",
